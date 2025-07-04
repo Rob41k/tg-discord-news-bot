@@ -61,8 +61,7 @@ def fetch_latest_post():
 def send_to_discord(post):
     embed = {
         "title": post["title"],
-        "description": post["description"],
-        "url": post["link"]
+        "description": f"{post['description']}\n\n🔗 [Переглянути в Telegram]({post['link']})"
     }
     if post["image"]:
         embed["image"] = {"url": post["image"]}
@@ -70,6 +69,7 @@ def send_to_discord(post):
     payload = {"embeds": [embed]}
     r = requests.post(WEBHOOK_URL, json=payload)
     print("✅ Надіслано в Discord:", r.status_code)
+
 
 # Головна логіка
 def main():
