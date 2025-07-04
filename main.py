@@ -46,7 +46,6 @@ def fetch_latest_post():
 
     # Декодуємо HTML-сутності (наприклад, &nbsp;, &quot;)
     description_html = html.unescape(description_html)
-
     soup_desc = BeautifulSoup(description_html, "html.parser")
 
     # Видаляємо цитату (реплай)
@@ -56,15 +55,11 @@ def fetch_latest_post():
 
     # Жирний текст: <b> або <strong> → **текст**
     for tag in soup_desc.find_all(["b", "strong"]):
-        tag.insert_before("**")
-        tag.insert_after("**")
-        tag.unwrap()
+        tag.replace_with(f"**{tag.get_text()}**")
 
     # Курсив: <i> або <em> → *текст*
     for tag in soup_desc.find_all(["i", "em"]):
-        tag.insert_before("*")
-        tag.insert_after("*")
-        tag.unwrap()
+        tag.replace_with(f"*{tag.get_text()}*")
 
     # Заміна <br> на перенос рядка
     for br in soup_desc.find_all("br"):
