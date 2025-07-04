@@ -2,15 +2,25 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import os
-import threading
 from flask import Flask
+import threading
 
+# Flask app для Render
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    return "Bot is running"
+
+def run_flask():
+    app.run(host="0.0.0.0", port=10000)
+
+# Основні змінні
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
 RSS_URL = "https://rsshub.app/telegram/channel/gruntmedia"
 last_guid_file = "last_post.txt"
 
+# Збереження останнього посту
 def get_last_guid():
     try:
         with open(last_guid_file, "r") as f:
@@ -22,6 +32,7 @@ def save_last_guid(guid):
     with open(last_guid_file, "w") as f:
         f.write(guid)
 
+# Завантаження посту з RSS
 def fetch_latest_post():
     r = requests.get(RSS_URL)
     soup = BeautifulSoup(r.text, "xml")
@@ -46,6 +57,7 @@ def fetch_latest_post():
         "guid": guid
     }
 
+# Відправка в Discord
 def send_to_discord(post):
     embed = {
         "title": post["title"],
@@ -59,7 +71,12 @@ def send_to_discord(post):
     r = requests.post(WEBHOOK_URL, json=payload)
     print("✅ Надіслано в Discord:", r.status_code)
 
-def run_bot():
+# Головна логіка
+def main():
+    # Запускаємо Flask-сервер у фоні
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+
     while True:
         post = fetch_latest_post()
         if not post:
@@ -71,5 +88,11 @@ def run_bot():
         if post["guid"] != last_guid:
             print("🆕 Новий пост! Відправляємо...")
             send_to_discord(post)
-            save_last_guid(post
+            save_last_guid(post["guid"])
+        else:
+            print("📭 Нових постів нема.")
 
+        time.sleep(60)
+
+if __name__ == "__main__":
+    main()
