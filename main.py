@@ -4,6 +4,7 @@ import time
 import os
 from flask import Flask
 import threading
+import html
 
 # Flask app для Render
 app = Flask(__name__)
@@ -42,6 +43,9 @@ def fetch_latest_post():
     guid = item.guid.text.strip()
     description_html = item.find("description").text
 
+    # Декодуємо HTML-сутності (наприклад, &nbsp;, &quot;)
+    description_html = html.unescape(description_html)
+
     soup_desc = BeautifulSoup(description_html, "html.parser")
 
     # Видаляємо цитату (реплай)
@@ -61,7 +65,13 @@ def fetch_latest_post():
         tag.insert_after("*")
         tag.unwrap()
 
-    description = soup_desc.get_text().strip()
+    # Заміна <br> на перенос рядка
+    for br in soup_desc.find_all("br"):
+        br.replace_with("\n")
+
+    # Додаткове очищення та вирівнювання пробілів
+    description = soup_desc.get_text(separator="\n").strip()
+
     img = soup_desc.find("img")
     image_url = img["src"] if img else None
 
