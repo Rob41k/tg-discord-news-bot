@@ -15,12 +15,10 @@ def home():
 def run_flask():
     app.run(host="0.0.0.0", port=10000)
 
-# Основні змінні
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
 RSS_URL = "https://rsshub.app/telegram/channel/gruntmedia"
 last_guid_file = "last_post.txt"
 
-# Збереження останнього посту
 def get_last_guid():
     try:
         with open(last_guid_file, "r") as f:
@@ -32,7 +30,6 @@ def save_last_guid(guid):
     with open(last_guid_file, "w") as f:
         f.write(guid)
 
-# Завантаження посту з RSS
 def fetch_latest_post():
     r = requests.get(RSS_URL)
     soup = BeautifulSoup(r.text, "xml")
@@ -41,15 +38,28 @@ def fetch_latest_post():
         return None
 
     title = item.title.text.strip()
+    link = item.link.text.strip()
     guid = item.guid.text.strip()
-
     description_html = item.find("description").text
+
     soup_desc = BeautifulSoup(description_html, "html.parser")
 
-    # Видаляємо цитоване повідомлення (реплай)
+    # Видаляємо цитату (реплай)
     reply_block = soup_desc.find("blockquote")
     if reply_block:
         reply_block.decompose()
+
+    # Жирний текст: <b> або <strong> → **текст**
+    for tag in soup_desc.find_all(["b", "strong"]):
+        tag.insert_before("**")
+        tag.insert_after("**")
+        tag.unwrap()
+
+    # Курсив: <i> або <em> → *текст*
+    for tag in soup_desc.find_all(["i", "em"]):
+        tag.insert_before("*")
+        tag.insert_after("*")
+        tag.unwrap()
 
     description = soup_desc.get_text().strip()
     img = soup_desc.find("img")
@@ -58,17 +68,15 @@ def fetch_latest_post():
     return {
         "title": title,
         "description": description,
+        "link": link,
         "image": image_url,
         "guid": guid
     }
 
-# Відправка в Discord
 def send_to_discord(post):
-    content = f"**{post['title']}**\n\n{post['description']}"
+    content = f"**{post['title']}**\n\n{post['description']}\n\n👉 [Переглянути в Telegram]({post['link']})"
 
-    payload = {
-        "content": content
-    }
+    payload = {"content": content}
 
     if post["image"]:
         payload["embeds"] = [{
@@ -79,9 +87,7 @@ def send_to_discord(post):
     response = requests.post(WEBHOOK_URL, json=payload, headers=headers)
     print("✅ Надіслано в Discord:", response.status_code)
 
-# Головна логіка
 def main():
-    # Запускаємо Flask-сервер у фоні
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
 
