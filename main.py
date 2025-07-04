@@ -41,35 +41,43 @@ def fetch_latest_post():
         return None
 
     title = item.title.text.strip()
-    link = item.link.text.strip()
+    guid = item.guid.text.strip()
+
     description_html = item.find("description").text
     soup_desc = BeautifulSoup(description_html, "html.parser")
+
+    # Видаляємо цитоване повідомлення (реплай)
+    reply_block = soup_desc.find("blockquote")
+    if reply_block:
+        reply_block.decompose()
+
     description = soup_desc.get_text().strip()
     img = soup_desc.find("img")
     image_url = img["src"] if img else None
-    guid = item.guid.text.strip()
 
     return {
         "title": title,
         "description": description,
-        "link": link,
         "image": image_url,
         "guid": guid
     }
 
 # Відправка в Discord
 def send_to_discord(post):
-    embed = {
-        "title": post["title"],
-        "description": f"{post['description']}\n\n🔗 [Переглянути в Telegram]({post['link']})"
+    content = f"**{post['title']}**\n\n{post['description']}"
+
+    payload = {
+        "content": content
     }
+
     if post["image"]:
-        embed["image"] = {"url": post["image"]}
+        payload["embeds"] = [{
+            "image": {"url": post["image"]}
+        }]
 
-    payload = {"embeds": [embed]}
-    r = requests.post(WEBHOOK_URL, json=payload)
-    print("✅ Надіслано в Discord:", r.status_code)
-
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(WEBHOOK_URL, json=payload, headers=headers)
+    print("✅ Надіслано в Discord:", response.status_code)
 
 # Головна логіка
 def main():
