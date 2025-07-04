@@ -2,6 +2,10 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import os
+import threading
+from flask import Flask
+
+app = Flask(__name__)
 
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
 RSS_URL = "https://rsshub.app/telegram/channel/gruntmedia"
@@ -55,7 +59,7 @@ def send_to_discord(post):
     r = requests.post(WEBHOOK_URL, json=payload)
     print("✅ Надіслано в Discord:", r.status_code)
 
-def main():
+def run_bot():
     while True:
         post = fetch_latest_post()
         if not post:
@@ -67,12 +71,5 @@ def main():
         if post["guid"] != last_guid:
             print("🆕 Новий пост! Відправляємо...")
             send_to_discord(post)
-            save_last_guid(post["guid"])
-        else:
-            print("📭 Нових постів нема.")
-
-        time.sleep(60)
-
-if __name__ == "__main__":
-    main()
+            save_last_guid(post
 
