@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import time
 import os
 
-WEBHOOK_URL = os.getenv("https://discord.com/api/webhooks/1390800496746430525/abVOuWQ7FDHjsZAJvwm047eJN5TaCjs-JqBj342Nc7_9KYVcsEjh3hVGtvNhkcdXjK3-")
+WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
 RSS_URL = "https://rsshub.app/telegram/channel/gruntmedia"
 last_guid_file = "last_post.txt"
 
@@ -75,3 +75,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
