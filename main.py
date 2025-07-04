@@ -53,22 +53,24 @@ def fetch_latest_post():
     if reply_block:
         reply_block.decompose()
 
-    # Жирний текст: <b> або <strong> → **текст**
-    for tag in soup_desc.find_all(["b", "strong"]):
-        tag.replace_with(f"**{tag.get_text()}**")
-
-    # Курсив: <i> або <em> → *текст*
-    for tag in soup_desc.find_all(["i", "em"]):
-        tag.replace_with(f"*{tag.get_text()}*")
-
     # Заміна <br> на перенос рядка
     for br in soup_desc.find_all("br"):
         br.replace_with("\n")
 
+    # Жирний текст: <b> або <strong> → **текст**
+    for tag in soup_desc.find_all(["b", "strong"]):
+        new_text = f"**{tag.get_text(strip=True)}**"
+        tag.replace_with(new_text)
+
+    # Курсив: <i> або <em> → *текст*
+    for tag in soup_desc.find_all(["i", "em"]):
+        new_text = f"*{tag.get_text(strip=True)}*"
+        tag.replace_with(new_text)
+
     # Отримуємо текст і очищаємо від зайвих переносів і пробілів
     description = soup_desc.get_text(separator="\n").strip()
     description = re.sub(r'\n{3,}', '\n\n', description)  # максимум два переноси підряд
-    description = re.sub(r'[ \t]{2,}', ' ', description)   # багато пробілів → один
+    description = re.sub(r'(?<=\S)[ \t]{2,}(?=\S)', ' ', description)  # багато пробілів між словами → один
 
     img = soup_desc.find("img")
     image_url = img["src"] if img else None
