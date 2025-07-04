@@ -5,6 +5,7 @@ import os
 from flask import Flask
 import threading
 import html
+import re
 
 # Flask app для Render
 app = Flask(__name__)
@@ -69,8 +70,10 @@ def fetch_latest_post():
     for br in soup_desc.find_all("br"):
         br.replace_with("\n")
 
-    # Додаткове очищення та вирівнювання пробілів
+    # Отримуємо текст і очищаємо від зайвих переносів і пробілів
     description = soup_desc.get_text(separator="\n").strip()
+    description = re.sub(r'\n{3,}', '\n\n', description)  # максимум два переноси підряд
+    description = re.sub(r'[ \t]{2,}', ' ', description)   # багато пробілів → один
 
     img = soup_desc.find("img")
     image_url = img["src"] if img else None
