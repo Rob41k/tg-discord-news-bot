@@ -5,7 +5,6 @@ import os
 from flask import Flask
 import threading
 import html
-import re
 
 # Flask app для Render
 app = Flask(__name__)
@@ -44,47 +43,42 @@ def fetch_latest_post():
     guid = item.guid.text.strip()
     description_html = item.find("description").text
 
-    # Декодуємо HTML-сутності (наприклад, &nbsp;, &quot;)
     description_html = html.unescape(description_html)
     soup_desc = BeautifulSoup(description_html, "html.parser")
 
-    # Видаляємо цитату (реплай)
     reply_block = soup_desc.find("blockquote")
     if reply_block:
         reply_block.decompose()
 
-    # Заміна <br> на перенос рядка
-    for br in soup_desc.find_all("br"):
-        br.replace_with("\n")
+    # Обробка переносів рядків
+    for tag in soup_desc.find_all(["br", "p", "div"]):
+        tag.insert_after("\n")
+        tag.unwrap()
 
-    # Жирний текст: <b> або <strong> → **текст**
     for tag in soup_desc.find_all(["b", "strong"]):
-        new_text = f"**{tag.get_text(strip=True)}**"
-        tag.replace_with(new_text)
+        tag.insert_before("**")
+        tag.insert_after("**")
+        tag.unwrap()
 
-    # Курсив: <i> або <em> → *текст*
     for tag in soup_desc.find_all(["i", "em"]):
-        new_text = f"*{tag.get_text(strip=True)}*"
-        tag.replace_with(new_text)
+        tag.insert_before("*")
+        tag.insert_after("*")
+        tag.unwrap()
 
-    # Отримуємо текст і очищаємо від зайвих переносів і пробілів
-    description = soup_desc.get_text(separator="\n").strip()
-    description = re.sub(r'\n{3,}', '\n\n', description)  # максимум два переноси підряд
-    description = re.sub(r'(?<=\S)[ \t]{2,}(?=\S)', ' ', description)  # багато пробілів між словами → один
-
+    description = soup_desc.get_text()
     img = soup_desc.find("img")
     image_url = img["src"] if img else None
 
     return {
         "title": title,
-        "description": description,
+        "description": description.strip(),
         "link": link,
         "image": image_url,
         "guid": guid
     }
 
 def send_to_discord(post):
-    content = f"**{post['title']}**\n\n{post['description']}\n\n👉 [Переглянути в Telegram]({post['link']})"
+    content = f"**{post['title']}**\n\n{post['description']}\n\n🔏 [Переглянути в Telegram]({post['link']})"
 
     payload = {"content": content}
 
@@ -114,7 +108,7 @@ def main():
             send_to_discord(post)
             save_last_guid(post["guid"])
         else:
-            print("📭 Нових постів нема.")
+            print("📫 Нових постів нема.")
 
         time.sleep(60)
 
